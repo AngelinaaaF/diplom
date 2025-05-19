@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}Создание опроса{% endblock %}
+
+{% block content %}
+{% if messages %}
+  <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2">
+    {% for message in messages %}
+      <div class="bg-red-100 border border-red-400 text-red-800 px-4 py-2 rounded shadow">
+        <strong class="font-bold">Ошибка:</strong>
+        <span class="block whitespace-pre-line">{{ message }}</span>
+      </div>
+    {% endfor %}
+  </div>
+  <script>
+    setTimeout(() => {
+      const toast = document.getElementById('toast-container');
+      if (toast) toast.remove();
+    }, 5000);
+  </script>
+{% endif %}
+
+<div class="max-w-3xl mx-auto bg-white border rounded shadow p-6 space-y-6">
+  <h2 class="text-2xl font-semibold text-gray-800">Создание опроса</h2>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <h3 class="text-lg font-medium mb-2">Основная информация</h3>
+    {{ form.name.label }} {{ form.name }}<br />
+    {{ form.year.label }} {{ form.year }}<br />
+    {{ form.start_date.label }} {{ form.start_date }}<br />
+
+    <hr />
+
+    <h3 class="text-lg font-medium mt-4">Вопросы</h3>
+    <button type="button" onclick="document.getElementById('copyModal').classList.remove('hidden')"
+       class="mt-6 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+      Выбрать опрос для копирования
+    </button>
+
+
+
+{% for characteristic, questions in form.questions.field.queryset|groupby_attr:"characteristic" %}
+  <div class="mb-4">
+    <h4 class="font-semibold">{{ characteristic|default:"Без категории" }}</h4>
+    <div class="space-y-1">
+      {% for question in questions %}
+        <label class="block">
+          <input type="checkbox" name="{{ form.questions.name }}" value="{{ question.pk }}"
+                 {% if question in form.questions.value %}checked{% endif %}>
+          {{ question.text }}
+        </label>
+      {% endfor %}
+    </div>
+  </div>
+{% endfor %}
+
+    <h4 class="font-semibold mt-4"> Добавить новый вопрос</h4>
+    {{ new_question_form.as_p }}
+    <button type="submit" name="add_question"  class="mt-6 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+      Добавить вопрос
+    </button>
+
+    <hr class="my-4" />
+
+    <h3 class="text-lg font-medium">Фильтры назначения</h3>
+    {{ form.faculty.label }} {{ form.faculty }}<br />
+    {{ form.department.label }} {{ form.department }}<br />
+    {{ form.teacher.label }} {{ form.teacher }}<br />
+    {{ form.subject.label }} {{ form.subject }}<br />
+    {{ form.group.label }} {{ form.group }}<br />
+    <p id="survey-count-label" class="text-sm text-gray-600 mt-2"></p>
+
+    <button type="submit" name="submit_all" class="mt-6 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+      Создать опросы
+    </button>
+  </form>
+</div>
+<div id="copyModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded shadow-lg max-w-lg w-full p-6">
+    <h3 class="text-lg font-semibold mb-4">Выберите опрос для копирования вопросов</h3>
+
+    <select id="surveyToCopy" class="w-full border rounded px-3 py-2 mb-4">
+      <option value="">— Не выбрано —</option>
+      {% for s in existing_surveys %}
+        <option value="{{ s.id }}">{{ s.name }} ({{ s.year }})</option>
+      {% endfor %}
+    </select>
+
+    <div class="flex justify-end gap-4">
+      <button type="button"
+              class="bg-gray-300 text-gray-800 px-4 py-2 rounded"
+              onclick="document.getElementById('copyModal').classList.add('hidden')">
+        Отмена
+      </button>
+      <button type="button"
+              class="bg-blue-600 text-white px-4 py-2 rounded"
+              onclick="copyQuestionsFromSurvey()">
+        Копировать
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+function copyQuestionsFromSurvey() {
+  const surveyId = document.getElementById("surveyToCopy").value;
+  if (!surveyId) return;
+
+  fetch(`/ajax/load_questions_from_survey/${surveyId}/`)
+    .then(res => res.json())
+    .then(data => {
+      const questionSelect = document.querySelector('[name="questions"]');
+      data.questions.forEach(q => {
+        const option = document.createElement("option");
+        option.value = q.id;
+        option.text = q.text;
+        option.selected = true;
+        questionSelect.appendChild(option);
+      });
+
+      document.getElementById('copyModal').classList.add('hidden');
+    });
+}
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const selectors = ['faculty', 'department', 'teacher', 'subject', 'group'];
+    const counterLabel = document.getElementById("survey-count-label");
+
+    function getSelectedValues(name) {
+      const el = document.querySelector(`[name="${name}"]`);
+      return Array.from(el?.selectedOptions || []).map(o => o.value);
+    }
+
+    function update() {
+      const params = new URLSearchParams();
+      selectors.forEach(name => {
+        getSelectedValues(name).forEach(val => params.append(name + '[]', val));
+      });
+
+      fetch(`/ajax/filter_fields_and_count/?${params}`)
+        .then(res => res.json())
+        .then(data => {
+          updateSelect('faculty', data.faculties);
+          updateSelect('department', data.departments);
+          updateSelect('teacher', data.teachers);
+          updateSelect('subject', data.subjects);
+          updateSelect('group', data.groups);
+          counterLabel.textContent = `Будет создано ${data.count} опрос(ов)`;
+        });
+    }
+
+    function updateSelect(name, options) {
+      const select = document.querySelector(`[name="${name}"]`);
+      if (!select) return;
+      const selected = new Set(Array.from(select.selectedOptions).map(o => o.value));
+      select.innerHTML = '';
+      options.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.id;
+        opt.textContent = item.label;
+        if (selected.has(String(item.id))) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+
+    selectors.forEach(name => {
+      const el = document.querySelector(`[name="${name}"]`);
+      if (el) el.addEventListener('change', update);
+    });
+
+    update(); // initial load
+  });
+</script>
+{% endblock %}

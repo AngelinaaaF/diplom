@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Опросы — Админ{% endblock %}
+
+{% block extrahead %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<h2 class="text-xl font-semibold mb-4">Опросы</h2>
+
+{% if user.userprofile.role == 'faculty_admin' or user.userprofile.role == 'department_admin' %}
+    <div class="mb-4 text-sm text-gray-600">
+        {% if user.userprofile.faculty %}
+            <p>👤 Вы администратор факультета: <strong>{{ user.userprofile.faculty.name }}</strong></p>
+        {% endif %}
+        {% if user.userprofile.department %}
+            <p>👤 Вы администратор кафедры: <strong>{{ user.userprofile.department.name }}</strong></p>
+        {% endif %}
+    </div>
+{% endif %}
+
+<form method="get" class="mb-6 w-full">
+  <!-- Горизонтальные фильтры с автопоиском -->
+  <div class="w-full pb-2 overflow-visible">
+  <div class="flex flex-wrap gap-4">
+    <div class="min-w-[220px]">
+      <label for="filter-year">Год:</label>
+      <select id="filter-year" name="year" class="tom border rounded px-2 py-1 w-full">
+        <option value="">Все</option>
+        {% for y in all_years %}
+          <option value="{{ y }}" {% if request.GET.year == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="min-w-[220px]">
+      <label for="filter-name">Название:</label>
+      <select id="filter-name" name="name" class="tom border rounded px-2 py-1 w-full">
+        <option value="">Все</option>
+        {% for n in all_names %}
+          <option value="{{ n }}" {% if request.GET.name == n %}selected{% endif %}>{{ n }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="min-w-[220px]">
+      <label for="filter-subject">Дисциплина:</label>
+      <select id="filter-subject" name="subject" class="tom border rounded px-2 py-1 w-full">
+        <option value="">Все</option>
+        {% for s in all_subjects %}
+          <option value="{{ s }}" {% if request.GET.subject == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="min-w-[220px]">
+      <label for="filter-teacher">Преподаватель:</label>
+      <select id="filter-teacher" name="teacher" class="tom border rounded px-2 py-1 w-full">
+        <option value="">Все</option>
+        {% for t in all_teachers %}
+          <option value="{{ t }}" {% if request.GET.teacher == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="min-w-[220px]">
+      <label for="filter-group">Группа:</label>
+      <select id="filter-group" name="group" class="tom border rounded px-2 py-1 w-full">
+        <option value="">Все</option>
+        {% for g in all_groups %}
+          <option value="{{ g }}" {% if request.GET.group == g %}selected{% endif %}>{{ g }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    {% if user.userprofile.role == 'admin' or user.userprofile.role == 'faculty_admin' %}
+    <div class="min-w-[220px]">
+      <label for="filter-dept">Кафедра:</label>
+      <select id="filter-dept" name="department" class="tom border rounded px-2 py-1 w-full">
+        <option value="">Все</option>
+        {% for d in all_departments %}
+          <option value="{{ d }}" {% if request.GET.department == d %}selected{% endif %}>{{ d }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+
+    {% if user.userprofile.role == 'admin' %}
+    <div class="min-w-[220px]">
+      <label for="filter-faculty">Факультет:</label>
+      <select id="filter-faculty" name="faculty" class="tom border rounded px-2 py-1 w-full">
+        <option value="">Все</option>
+        {% for f in all_faculties %}
+          <option value="{{ f }}" {% if request.GET.faculty == f %}selected{% endif %}>{{ f }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+
+  <!-- Кнопки -->
+  <div class="mt-4 flex gap-4 justify-start">
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Применить</button>
+    <a href="{% url 'admin_results' %}" class="px-4 py-2 border rounded bg-gray-100 hover:bg-gray-200">Сбросить</a>
+  </div>
+</form>
+
+<table class="min-w-full border border-gray-300 text-sm">
+    <thead>
+        <tr class="bg-gray-100 text-left">
+            <th class="p-2 border">Название</th>
+            <th class="p-2 border">Год</th>
+            <th class="p-2 border">Факультет</th>
+            <th class="p-2 border">Кафедра</th>
+            <th class="p-2 border">Предмет</th>
+            <th class="p-2 border">Преподаватель</th>
+            <th class="p-2 border">Группа</th>
+            <th class="p-2 border">Результаты</th>
+            <th class="p-2 border">Средняя оценка</th>
+            <th class="p-2 border">Взвешенная оценка</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in surveys %}
+        <tr class="hover:bg-gray-50">
+            <td class="p-2 border">{{ s.name }}</td>
+            <td class="p-2 border">{{ s.year }}</td>
+            <td class="p-2 border">{{ s.teacher_subject.teacher.department.faculty.name }}</td>
+            <td class="p-2 border">{{ s.teacher_subject.teacher.department.name }}</td>
+            <td class="p-2 border">{{ s.teacher_subject.subject.name }}</td>
+            <td class="p-2 border">{{ s.teacher_subject.teacher.full_name }}</td>
+            <td class="p-2 border">{{ s.teacher_subject.group }} </td>
+            <td class="p-2 border">
+                <a href="{% url 'survey_results' s.id %}" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                    Смотреть
+                </a>
+            </td>
+            <td class="p-2 border">{{ s.avg_score|default:"–" }}</td>
+            <td class="p-2 border">{{ s.weighted_score|default:"–" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="10" class="text-gray-500 italic p-3">Нет доступных опросов.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2 class="text-xl font-semibold mb-4">Шаг 3: Настройка области опроса</h2>
+
+<form method="post" class="space-y-4">
+  {% csrf_token %}
+  <div>
+    <label class="block font-medium">Название:</label>
+    {{ form.name }}
+  </div>
+
+  <div>
+    <label class="block font-medium">Учебный год:</label>
+    {{ form.year }}
+  </div>
+
+  <div>
+    <label class="block font-medium">Дата начала:</label>
+    {{ form.start_date }}
+  </div>
+
+  <hr class="my-4">
+
+  <h3 class="font-semibold">Область действия (можно выбрать несколько)</h3>
+
+  <div>
+    <label class="block font-medium">Факультеты:</label>
+    {{ form.faculty }}
+  </div>
+  <div>
+    <label class="block font-medium">Кафедры:</label>
+    {{ form.department }}
+  </div>
+  <div>
+    <label class="block font-medium">Преподаватели:</label>
+    {{ form.teacher }}
+  </div>
+  <div>
+    <label class="block font-medium">Дисциплины:</label>
+    {{ form.subject }}
+  </div>
+  <div>
+    <label class="block font-medium">Группы:</label>
+    {{ form.group }}
+  </div>
+
+  <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+    ✅ Завершить и создать опросы
+  </button>
+</form>
+{% endblock %}

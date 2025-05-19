@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Создание опроса{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white border border-gray-200 rounded shadow p-6 space-y-6">
+  <h2 class="text-2xl font-semibold text-gray-800">Создание опроса</h2>
+
+  <div>
+    <a href="{% url 'create_new_survey' %}" class="inline-block bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700 transition">
+      ➕ Создать новый опрос
+    </a>
+  </div>
+
+  {% if surveys %}
+  <div>
+    <h3 class="text-lg font-medium text-gray-700 mb-2">Или выбрать уже созданный шаблон:</h3>
+
+    <select id="survey-copy-select" class="tom w-full border px-3 py-2 rounded">
+      <option value="">Выберите шаблон...</option>
+      {% for s in surveys %}
+      <option value="{{ s.id }}">Создать копию — {{ s.name }} ({{ s.year }})</option>
+      {% endfor %}
+    </select>
+
+    <button type="button" id="copyBtn" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+      Создать копию
+    </button>
+  </div>
+  {% else %}
+  <p class="text-gray-500 italic">Нет доступных шаблонов для копирования.</p>
+  {% endif %}
+</div>
+{% endblock %}
+
+

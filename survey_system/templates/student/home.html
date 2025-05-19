@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная — Студент{% endblock %}
+
+{% block content %}
+<h1 class="text-xl font-semibold mb-4">Доступные опросы</h1>
+
+<!-- Фильтры -->
+<form method="get" class="flex flex-wrap gap-4 items-end mb-6">
+    <div class="flex flex-col">
+        <label for="year" class="font-medium mb-1">Год:</label>
+        <select name="year" id="year" class="tom border px-2 py-1 rounded">
+            <option value="">Все года</option>
+            {% for y in all_years %}
+                <option value="{{ y }}" {% if request.GET.year == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="flex flex-col">
+        <label for="name" class="font-medium mb-1">Название опроса:</label>
+        <select name="name" id="name" class="tom border px-2 py-1 rounded">
+            <option value="">Все</option>
+            {% for n in all_names %}
+                <option value="{{ n }}" {% if request.GET.name == n %}selected{% endif %}>{{ n }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="flex flex-col">
+        <label for="subject" class="font-medium mb-1">Дисциплина:</label>
+        <select name="subject" id="subject" class="tom border px-2 py-1 rounded">
+            <option value="">Все предметы</option>
+            {% for s in all_subjects %}
+                <option value="{{ s }}" {% if request.GET.subject == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="flex flex-col">
+        <label for="teacher" class="font-medium mb-1">Преподаватель:</label>
+        <select name="teacher" id="teacher" class="tom border px-2 py-1 rounded">
+            <option value="">Все</option>
+            {% for t in all_teachers %}
+                <option value="{{ t }}" {% if request.GET.teacher == t %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="flex items-center mt-4">
+        <label class="inline-flex items-center gap-1">
+            <input type="checkbox" name="show_completed" class="tom" {% if request.GET.show_completed %}checked{% endif %}>
+            <span>Показать пройденные</span>
+        </label>
+    </div>
+
+    <div class="flex gap-2 mt-4">
+        <button type="submit" class="tom bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Применить</button>
+        <a href="{% url 'student_home' %}" class="tom bg-gray-200 text-black px-4 py-2 rounded hover:bg-gray-300">Сбросить</a>
+    </div>
+</form>
+
+<!-- Таблица опросов -->
+{% if surveys %}
+    <div class="overflow-x-auto">
+        <table class="w-full border border-gray-300 rounded shadow text-sm">
+            <thead class="bg-gray-100 text-left">
+                <tr>
+                    <th class="p-3 border-b">Название</th>
+                    <th class="p-3 border-b">Год</th>
+                    <th class="p-3 border-b">Дисциплина</th>
+                    <th class="p-3 border-b">Преподаватель</th>
+                    <th class="p-3 border-b text-center">Статус</th>
+                    <th class="p-3 border-b text-center">Действие</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for survey in surveys %}
+                <tr class="{% if survey.id in completed_ids %}bg-green-50{% else %}bg-white{% endif %}">
+                    <td class="p-3 border-b">{{ survey.name }}</td>
+                    <td class="p-3 border-b">{{ survey.year }}</td>
+                    <td class="p-3 border-b">{{ survey.teacher_subject.subject.name }}</td>
+                    <td class="p-3 border-b">{{ survey.teacher_subject.teacher.full_name }}</td>
+                    <td class="p-3 border-b text-center">
+                        {% if survey.id in completed_ids %}
+                            <span class="text-green-600 font-semibold">Пройден</span>
+                        {% else %}
+                            <span class="text-gray-500 italic">Не пройден</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-3 border-b text-center">
+                        {% if survey.id in completed_ids %}
+                            <span class="text-gray-400">—</span>
+                        {% else %}
+                            <form action="/survey/{{ survey.id }}/start/" method="get">
+                                <button type="submit" class="tom bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                                    Пройти
+                                </button>
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <p class="text-gray-500">Нет доступных опросов в данный момент.</p>
+{% endif %}
+{% endblock %}

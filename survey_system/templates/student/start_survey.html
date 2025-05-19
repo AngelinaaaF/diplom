@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 class="text-xl font-semibold mb-4">{{ survey.name }}</h1>
+<p><strong>Курс:</strong> {{ survey.teacher_subject.subject.name }}</p>
+<p><strong>Преподаватель:</strong> {{ survey.teacher_subject.teacher.full_name }}</p>
+
+<form method="post" class="space-y-6 mt-6">
+    {% csrf_token %}
+    {% for item in questions %}
+        <div>
+            <p class="font-medium mb-2">{{ forloop.counter }}. {{ item.question.text }}</p>
+
+            {% if item.question.type == 'text' %}
+                <textarea name="question_{{ item.id }}" rows="3" cols="60" class="tom w-full border px-3 py-2 rounded" required></textarea>
+
+            {% elif item.question.type == 'choice' %}
+                <div class="flex gap-4">
+                    {% for option in item.question.options.all %}
+                        <label class="inline-flex items-center gap-1">
+                            <input type="radio" name="question_{{ item.id }}" value="{{ option.text }}" required class="tom">
+                            {{ option.text }}
+                        </label>
+                    {% endfor %}
+                </div>
+
+            {% elif item.question.type == 'multi' %}
+                <div class="flex gap-4 flex-wrap">
+                    {% for option in item.question.options.all %}
+                        <label class="inline-flex items-center gap-1">
+                            <input type="checkbox" name="question_{{ item.id }}_multi" value="{{ option.text }}" class="tom">
+                            {{ option.text }}
+                        </label>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+
+    <button type="submit" class="tom mt-4 bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Отправить</button>
+</form>
+{% endblock %}

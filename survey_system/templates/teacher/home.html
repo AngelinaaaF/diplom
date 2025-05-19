@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная — Преподаватель{% endblock %}
+
+{% block content %}
+<h1 class="text-xl font-semibold mb-4">Ваши опросы</h1>
+
+<form method="get" class="flex flex-wrap gap-4 mb-6">
+    <select name="year" class="tom border p-2 rounded">
+        <option value="">Все года</option>
+        {% for y in all_years %}
+        <option value="{{ y }}" {% if request.GET.year|stringformat:"s" == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+    </select>
+
+    <select name="name" class="tom border p-2 rounded">
+        <option value="">Все опросы</option>
+        {% for n in all_names %}
+        <option value="{{ n }}" {% if request.GET.name == n %}selected{% endif %}>{{ n }}</option>
+        {% endfor %}
+    </select>
+
+    <select name="subject" class="tom border p-2 rounded">
+        <option value="">Все дисциплины</option>
+        {% for s in all_subjects %}
+        <option value="{{ s }}" {% if request.GET.subject == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+    </select>
+
+    <select name="group" class="tom border p-2 rounded">
+        <option value="">Все группы</option>
+        {% for g in all_groups %}
+        <option value="{{ g }}" {% if request.GET.group == g %}selected{% endif %}>{{ g }}</option>
+        {% endfor %}
+    </select>
+
+    <button type="submit" class="tom bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Применить</button>
+    <a href="{% url 'teacher_home' %}" class="tom bg-gray-300 px-4 py-2 rounded hover:bg-gray-400 text-black">Сбросить</a>
+</form>
+
+{% if surveys %}
+<div class="overflow-x-auto">
+    <table class="w-full border border-gray-300 rounded shadow text-sm">
+        <thead class="bg-gray-100 text-left">
+            <tr>
+                <th class="p-3 border-b">Название</th>
+                <th class="p-3 border-b">Год</th>
+                <th class="p-3 border-b">Дисциплина</th>
+                <th class="p-3 border-b">Группа</th>
+                <th class="p-3 border-b text-center">Смотреть</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for survey in surveys %}
+            <tr class="bg-white">
+                <td class="p-3 border-b">{{ survey.name }}</td>
+                <td class="p-3 border-b">{{ survey.year }}</td>
+                <td class="p-3 border-b">{{ survey.teacher_subject.subject.name }}</td>
+                <td class="p-3 border-b">{{ survey.teacher_subject.group }}</td>
+                <td class="p-3 border-b text-center">
+                    <form action="{% url 'survey_results' survey.id %}" method="get">
+                        <button class="tom bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">
+                            Результаты
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-gray-500">Опросов не найдено.</p>
+{% endif %}
+{% endblock %}

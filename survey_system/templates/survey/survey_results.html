@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}Результаты опроса{% endblock %}
+
+
+{% block content %}
+
+
+<h2 class="text-2xl font-semibold mb-4">{{ survey.name }} — {{ survey.year }}</h2>
+
+<p><strong>Группа:</strong> {{ survey.teacher_subject.group.program.name }} ({{ survey.teacher_subject.group.admission_year }})</p>
+<p><strong>Преподаватель:</strong> {{ survey.teacher_subject.teacher.full_name }}</p>
+<p><strong>Дисциплина:</strong> {{ survey.teacher_subject.subject.name }}</p>
+<p class="mt-2">Проголосовали: <strong>{{ analysis.total_responses }} / {{ analysis.total_students }}</strong></p>
+{% if analysis.overall_mean %}
+<div class="mt-4 mb-6 bg-green-50 border border-green-200 p-4 rounded">
+  <h3 class="text-lg font-semibold mb-1 text-green-800">Общий итог по опросу</h3>
+  <p class="text-md font-medium text-green-900">
+    Средняя оценка: {{ analysis.overall_mean }}
+    {% if analysis.overall_weighted_mean %}
+      | Взвешенное: {{ analysis.overall_weighted_mean }}
+    {% endif %}
+  </p>
+</div>
+{% endif %}
+<hr class="my-4">
+
+{% for block in analysis.characteristics %}
+  <div class="mb-8">
+    <h3 class="text-xl font-bold mb-4 border-b pb-1">{{ block.name }}</h3>
+
+<table class="w-full text-sm border border-gray-300 rounded overflow-hidden">
+  <thead class="bg-gray-100 text-left">
+    <tr>
+      <th class="p-2 border-b w-1/2">Вопрос</th>
+      <th class="p-2 border-b text-center">Среднее</th>
+      <th class="p-2 border-b text-center">Взвешенное</th>
+      <th class="p-2 border-b text-center">Ст. отклонение</th>
+      <th class="p-2 border-b text-center">Мода</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for q in block.questions %}
+      <tr class="hover:bg-gray-50">
+        <td class="p-2 border-b">{{ forloop.counter }}. {{ q.text }}</td>
+        {% if q.values %}
+          <td class="p-2 border-b text-center">{{ q.mean }}</td>
+          <td class="p-2 border-b text-center">{{ analysis.weighted_averages|get_item:q.id }}</td>
+          <td class="p-2 border-b text-center">{{ q.stdev }}</td>
+          <td class="p-2 border-b text-center">{{ q.mode }}</td>
+        {% else %}
+          <td colspan="4" class="p-2 border-b text-gray-500 italic text-center">Нет ответов</td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+    {% if block.block_mean %}
+      <div class="mt-2 text-sm text-gray-800">
+        Среднее по разделу: <span class="font-medium">{{ block.block_mean }}</span>
+        {% if block.weighted_block_mean %}
+          | Взвешенное: <span class="font-medium">{{ block.weighted_block_mean }}</span>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+{% endfor %}
+
+
+<div class="my-10">
+  <button onclick="toggleChart('questionChartContainer')" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+     Показать средние оценки по вопросам
+  </button>
+  <div id="questionChartContainer" class="hidden mt-4 bg-white border rounded shadow p-4 overflow-auto" style="max-height: 300px;">
+    <div style="min-width: 700px;">
+      <canvas id="questionMeansChart" height="120" style="width: 700px;"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="my-10">
+  <button onclick="toggleChart('charChartContainer')" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+     Показать сравнение по характеристикам
+  </button>
+  <div id="charChartContainer" class="hidden mt-4 bg-white border rounded shadow p-4 overflow-auto" style="max-height: 300px;">
+    <div style="min-width: 700px;">
+      <canvas id="characteristicsBarChart" height="120" style="width: 700px;"></canvas>
+    </div>
+  </div>
+</div>
+
+
+
+{% if analysis.regression_coefficients %}
+<hr class="my-10">
+
+<div class="my-10">
+  <h3 class="text-xl font-semibold mb-2">Регрессионный анализ</h3>
+  <p class="text-sm text-gray-600 mb-2">Оценка вклада каждой характеристики в итоговую оценку "Общее впечатление".</p>
+  <table class="min-w-[300px] text-sm border border-gray-300 rounded">
+    <thead class="bg-gray-100 text-left">
+      <tr>
+        <th class="p-2 border">Характеристика</th>
+        <th class="p-2 border text-center">Коэффициент</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for name, coef in analysis.regression_coefficients.items %}
+      <tr class="hover:bg-gray-50">
+        <td class="p-2 border">{{ name }}</td>
+        <td class="p-2 border text-center">{{ coef }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+
+{% if analysis.correlation_matrix %}
+    <h3 class="text-xl mt-6 mb-2">Корреляционная матрица</h3>
+
+  <!-- Легенда -->
+  <p class="text-sm text-gray-600 mb-2">
+    <span class="inline-block w-4 h-4 bg-green-200 align-middle mr-1"></span> ≥ 0.7: сильная связь
+    <span class="inline-block w-4 h-4 bg-yellow-100 ml-4 align-middle mr-1"></span> 0.4–0.69: умеренная связь
+    <span class="inline-block w-4 h-4 bg-red-100 ml-4 align-middle mr-1"></span> ≤ –0.4: обратная связь
+  </p>
+
+  <!-- Матрица -->
+  <div class="overflow-auto">
+    <table class="text-sm border-collapse">
+      <thead>
+        <tr>
+          <th class="p-2 border bg-gray-100">Q#</th>
+          {% for q2 in analysis.correlation_headers %}
+            <th class="p-2 border bg-gray-100 text-center">{{ q2 }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for q1, row in analysis.correlation_matrix.items %}
+        <tr>
+          <th class="p-2 border text-left bg-gray-100">{{ q1 }}</th>
+          {% for q2 in analysis.correlation_headers %}
+            {% with val=row|get_item:q2 %}
+              {% if q1 == q2 %}
+                <td class="p-1 border text-center bg-gray-200 text-gray-500">—</td>
+              {% else %}
+                <td class="p-1 border text-center font-mono text-sm
+                  {% if val >= 0.7 %}bg-green-200
+                  {% elif val >= 0.4 %}bg-yellow-100
+                  {% elif val <= -0.4 %}bg-red-100
+                  {% else %}bg-white
+                  {% endif %}">
+                  {{ val|default:"–" }}
+                </td>
+              {% endif %}
+            {% endwith %}
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  
+{% endif %}
+
+<a href="{% url 'teacher_home' %}" class="inline-block mt-6 text-blue-600 hover:underline">← Назад</a>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const questionLabels = [
+    {% for block in analysis.characteristics %}
+      {% for q in block.questions %}
+        "{{ q.text|truncatechars:40 }}",
+      {% endfor %}
+    {% endfor %}
+  ];
+
+  const questionMeans = [
+    {% for block in analysis.characteristics %}
+      {% for q in block.questions %}
+        {{ q.mean|default:0 }},
+      {% endfor %}
+    {% endfor %}
+  ];
+
+  const charLabels = [
+    {% for block in analysis.characteristics %}
+      "{{ block.name }}",
+    {% endfor %}
+  ];
+
+  const charMeans = [
+    {% for block in analysis.characteristics %}
+      {{ block.block_mean|default:0 }},
+    {% endfor %}
+  ];
+
+  const charWeighted = [
+    {% for block in analysis.characteristics %}
+      {{ block.weighted_block_mean|default:0 }},
+    {% endfor %}
+  ];
+
+  new Chart(document.getElementById("questionMeansChart"), {
+    type: 'bar',
+    data: {
+      labels: questionLabels,
+      datasets: [{
+        label: 'Средняя оценка по вопросу',
+        data: questionMeans,
+        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `Оценка: ${context.parsed.y}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 5,
+          ticks: { stepSize: 1 },
+          title: { display: true, text: 'Оценка' }
+        },
+        x: {
+          ticks: { maxRotation: 45, minRotation: 30 }
+        }
+      }
+    }
+  });
+
+  new Chart(document.getElementById("characteristicsBarChart"), {
+    type: 'bar',
+    data: {
+      labels: charLabels,
+      datasets: [
+        {
+          label: 'Среднее',
+          data: charMeans,
+          backgroundColor: 'rgba(59, 130, 246, 0.7)',
+        },
+        {
+          label: 'Взвешенное',
+          data: charWeighted,
+          backgroundColor: 'rgba(16, 185, 129, 0.7)',
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `${context.dataset.label}: ${context.parsed.y}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 5,
+          ticks: { stepSize: 1 },
+          title: { display: true, text: 'Оценка' }
+        }
+      }
+    }
+  });
+});
+function toggleChart(id) {
+  const el = document.getElementById(id);
+  if (el.classList.contains("hidden")) {
+    el.classList.remove("hidden");
+  } else {
+    el.classList.add("hidden");
+  }
+}
+
+</script>
+{% endblock %}

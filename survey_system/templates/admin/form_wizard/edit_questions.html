@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Шаг 2: Выбор вопросов</h2>
+
+<form method="post">
+    {% csrf_token %}
+    <h3 class="mb-2">Существующие вопросы</h3>
+    {% for q in questions %}
+        <label>
+            <input type="checkbox" name="questions" value="{{ q.id }}" {% if q.id in selected_ids %}checked{% endif %}>
+            {{ q.text }}
+        </label><br/>
+    {% endfor %}
+    <button type="submit" name="next" class="mt-4 bg-blue-600 text-white px-3 py-1 rounded">Далее</button>
+</form>
+
+<hr class="my-4">
+
+<h3 class="text-lg font-semibold mb-2">Добавить новый вопрос</h3>
+
+<form method="post">
+    {% csrf_token %}
+    {{ new_question_form.as_p }}
+    <button type="submit" name="add_question" class="bg-green-600 text-white px-3 py-1 rounded">
+        ➕ Добавить вопрос
+    </button>
+</form>
+{% endblock %}

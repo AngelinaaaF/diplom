@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>{% block title %}Опросная система{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll('select.tom').forEach(function (el) {
+                new TomSelect(el, {
+                    allowEmptyOption: true,
+                    placeholder: "Начните вводить..."
+                });
+            });
+        });
+    </script>
+    <style>
+        html {
+            font-size: 18px !important;
+        }
+
+        body,
+        p,
+        a,
+        li,
+        button,
+        input,
+        select,
+        textarea,
+        label,
+        form,
+        nav,
+        div,
+        table,
+        th,
+        td,
+        thead,
+        tr {
+            font-size: inherit !important;
+        }
+    </style>
+</head>
+
+<body>
+    {% if user.is_authenticated %}
+    <div
+        style="background-color: #2855be; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div style=" font-size: inherit;">
+            ИС Анкетирование
+        </div>
+        {% if user.userprofile.role == 'student' and user.student %}
+        <p>Вы вошли как студент: {{ user.student.full_name }}</p>
+        {% elif user.userprofile.role == 'teacher' and user.departmentstaff %}
+        <p>Вы вошли как преподаватель: {{ user.departmentstaff.full_name }}</p>
+        {% else %}
+        <p>Вы вошли как: {{ user.username }}</p>
+        {% endif %}
+
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <form method="post" action="{% url 'logout' %}" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit"
+                    style="background: none; border: none; color: white; cursor: pointer; font-size: inherit;">
+                    Выйти
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if user.is_authenticated and user.userprofile.role != 'student' and user.userprofile.role != 'teacher' %}
+    <nav style="background-color: #2d3748; color: white; padding: 1rem; margin-bottom: 1.5rem;">
+        <ul style="display: flex; gap: 1.5rem;">
+            <li><a href="{% url 'admin_results' %}" style="text-decoration: none;"
+                    onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">📋
+                    Опросы</a></li>
+            <li><a href="{% url 'admin_rating' %}" style="text-decoration: none;"
+                    onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">📊
+                    Рейтинг</a></li>
+            <li><a href="{% url 'create_survey' %}" style="text-decoration: none;"
+                    onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">➕
+                    Создать опрос</a></li>
+        </ul>
+    </nav>
+    {% endif %}
+
+
+    <div style="padding: 0 40px 40px;">
+
+        {% block content %}
+        <!-- Содержимое страницы -->
+        {% endblock %}
+    </div>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>
